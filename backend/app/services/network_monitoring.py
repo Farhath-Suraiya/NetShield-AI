@@ -197,12 +197,44 @@ def resolve_data_directory(data_directory: Path | None = None) -> Path:
     return fallback
 
 
+def set_dataset_disabled() -> None:
+    """Explicitly mark dataset loading as disabled for production mode."""
+    global _CACHE_STATE
+    with _CACHE_LOCK:
+        _CACHE_STATE.update({
+            'status': 'disabled',
+            'combined': pd.DataFrame(columns=COMMON_SCHEMA_COLUMNS),
+            'analytics': dict(EMPTY_ANALYTICS),
+            'summary': {
+                'message': 'Dataset preloading is disabled in production environment. Real-time threat predictions, live packet capture, alerts, and incident response remain fully active.',
+                'datasets_loaded': 0,
+                'rows_loaded': 0,
+                'rows_after_preprocessing': 0,
+                'duplicates_removed': 0,
+                'missing_values_removed': 0,
+                'protocols_detected': [],
+                'threat_levels': [],
+                'traffic_labels': [],
+                'startup_time_seconds': 0.0,
+                'memory_usage_mb': 0.0,
+                'files_failed': [],
+            },
+            'error': None,
+            'files_loaded': [],
+            'files_failed': [],
+        })
+    _DATASET_READY_EVENT.set()
+
+
 def discover_csv_files(data_directory: Path | None = None) -> List[Path]:
     """Discover every dataset file (.csv, .xlsx, .xls) under backend/app/data."""
+    from app.config import settings
+    if not settings.LOAD_DATASETS:
+        return []
+
     resolved_directory = resolve_data_directory(data_directory)
 
     if not resolved_directory.exists():
-        logger.warning('Dataset directory not found: %s', resolved_directory)
         return []
 
     dataset_files = sorted(
@@ -1119,6 +1151,12 @@ def compute_analytics(combined: pd.DataFrame, loaded_files: List[Path] = None) -
 
 
 def _build_dataset_cache(data_directory: Path | None = None) -> Dict[str, Any]:
+    from app.config import settings
+    if not settings.LOAD_DATASETS:
+        logger.info('[STARTUP] LOAD_DATASETS=False. Skipping dataset cache build.')
+        set_dataset_disabled()
+        return get_cached_dataset_state()
+
     wall_start = time.perf_counter()
     logger.info('=== [STARTUP] Beginning dataset cache build ===')
 
@@ -1132,9 +1170,10 @@ def _build_dataset_cache(data_directory: Path | None = None) -> Dict[str, Any]:
     )
 
     if not frames:
-        logger.warning('[STARTUP] No readable dataset files found during cache build')
+        logger.info('[STARTUP] No local dataset CSV files found during cache build.')
         combined = pd.DataFrame(columns=COMMON_SCHEMA_COLUMNS)
         summary = {
+            'message': 'No local dataset CSV files found. Real-time threat predictions, live packet capture, alerts, and incident response remain fully active.',
             'datasets_loaded': 0,
             'rows_loaded': 0,
             'rows_after_preprocessing': 0,
@@ -1327,8 +1366,16 @@ def get_cached_analytics() -> Dict[str, Any]:
 
 
 async def ensure_dataset_loaded_async(data_directory: Path | None = None) -> str:
+    from app.config import settings
+    if not settings.LOAD_DATASETS:
+        set_dataset_disabled()
+        return "disabled"
+
     with _CACHE_LOCK:
         status = str(_CACHE_STATE.get('status', 'idle'))
+
+    if status == 'disabled':
+        return 'disabled'
 
     if status == 'idle':
         with _CACHE_LOCK:
@@ -1351,9 +1398,14 @@ async def ensure_dataset_loaded_async(data_directory: Path | None = None) -> str
 
 
 def ensure_dataset_loaded(data_directory: Path | None = None) -> str:
+    from app.config import settings
+    if not settings.LOAD_DATASETS:
+        set_dataset_disabled()
+        return "disabled"
+
     with _CACHE_LOCK:
         status = _CACHE_STATE.get('status', 'idle')
-        if status in ('ready', 'failed', 'loading'):
+        if status in ('ready', 'failed', 'loading', 'disabled'):
             return status
         _CACHE_STATE['status'] = 'loading'
         _CACHE_STATE['error'] = None

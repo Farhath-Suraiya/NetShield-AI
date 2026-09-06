@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     # Live Capture Settings
     NETSHIELD_CAPTURE_INTERFACE: str = "4"
     NETSHIELD_TSHARK_PATH: str = r"E:\Wireshark\tshark.exe"
+
+    # Dataset Preload Settings (Set to False for production cloud deployment)
+    LOAD_DATASETS: bool = True
     
     # CORS Origins (JSON list or comma separated)
     BACKEND_CORS_ORIGINS: List[str] = [

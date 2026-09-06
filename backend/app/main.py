@@ -63,16 +63,22 @@ async def lifespan(app: FastAPI):
     logger.info('MongoDB connected')
     await log_system_event("INFO", "Backend Service", "Backend Startup Initiated")
 
-    # ── 2. Kick off dataset preload in the background ────────────────────────
-    logger.info('Scheduling background dataset preload ...')
-    preload_task = asyncio.create_task(_load_dataset_cache_async())
-    logger.info('Application ready — dataset loading in background (task id=%s)', id(preload_task))
+    # ── 2. Kick off dataset preload if enabled ──────────────────────────────
+    preload_task = None
+    if settings.LOAD_DATASETS:
+        logger.info('Scheduling background dataset preload ...')
+        preload_task = asyncio.create_task(_load_dataset_cache_async())
+        logger.info('Application ready — dataset loading in background (task id=%s)', id(preload_task))
+    else:
+        logger.info('Dataset preloading disabled (LOAD_DATASETS=False). Operating in Production/Model-Only mode.')
+        from app.services.network_monitoring import set_dataset_disabled
+        set_dataset_disabled()
 
     yield  # ← server handles requests from this point
 
     # ── 3. Shutdown ──────────────────────────────────────────────────────
     await log_system_event("INFO", "Backend Service", "Server Shutdown")
-    if not preload_task.done():
+    if preload_task and not preload_task.done():
         preload_task.cancel()
     await close_mongo_connection()
 

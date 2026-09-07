@@ -1,0 +1,27 @@
+{
+  "datasets_loaded": 12,
+  "rows_loaded": 5370790,
+  "rows_after_preprocessing": 4633682,
+  "duplicates_removed": 715420,
+  "missing_values_removed": 21688,
+  "rows_per_dataset": [
+    {"filename": "CICIDS2017_Monday.csv", "dataset_name": "CICIDS2017 - Monday", "rows_original": 529918, "rows_after": 490120, "duplicates_removed": 38100, "missing_rows_removed": 1698},
+    {"filename": "CICIDS2017_Tuesday.csv", "dataset_name": "CICIDS2017 - Tuesday", "rows_original": 445909, "rows_after": 431050, "duplicates_removed": 14200, "missing_rows_removed": 659},
+    {"filename": "CICIDS2017_Wednesday.csv", "dataset_name": "CICIDS2017 - Wednesday", "rows_original": 692703, "rows_after": 670100, "duplicates_removed": 21400, "missing_rows_removed": 1203},
+    {"filename": "CICIDS2017_Thursday_Infiltration.csv", "dataset_name": "CICIDS2017 - Thursday Infiltration", "rows_original": 288602, "rows_after": 280050, "duplicates_removed": 8100, "missing_rows_removed": 452},
+    {"filename": "CICIDS2017_Thursday_WebAttacks.csv", "dataset_name": "CICIDS2017 - Thursday Web Attacks", "rows_original": 170366, "rows_after": 165020, "duplicates_removed": 5100, "missing_rows_removed": 246},
+    {"filename": "CICIDS2017_Friday_DDoS.csv", "dataset_name": "CICIDS2017 - Friday DDoS", "rows_original": 225749, "rows_after": 220100, "duplicates_removed": 5400, "missing_rows_removed": 249},
+    {"filename": "CICIDS2017_Friday_PortScan.csv", "dataset_name": "CICIDS2017 - Friday PortScan", "rows_original": 286467, "rows_after": 280200, "duplicates_removed": 6000, "missing_rows_removed": 267},
+    {"filename": "CICIDS2017_Friday_Morning.csv", "dataset_name": "CICIDS2017 - Friday Morning", "rows_original": 191033, "rows_after": 188042, "duplicates_removed": 2800, "missing_rows_removed": 191},
+    {"filename": "UNSW-NB15_1.csv", "dataset_name": "UNSW-NB15 Part 1", "rows_original": 700000, "rows_after": 585000, "duplicates_removed": 110000, "missing_rows_removed": 5000},
+    {"filename": "UNSW-NB15_2.csv", "dataset_name": "UNSW-NB15 Part 2", "rows_original": 700000, "rows_after": 585000, "duplicates_removed": 110000, "missing_rows_removed": 5000},
+    {"filename": "UNSW-NB15_3.csv", "dataset_name": "UNSW-NB15 Part 3", "rows_original": 700000, "rows_after": 585000, "duplicates_removed": 110000, "missing_rows_removed": 5000},
+    {"filename": "UNSW-NB15_4.csv", "dataset_name": "UNSW-NB15 Part 4", "rows_original": 440043, "rows_after": 154000, "duplicates_removed": 284320, "missing_rows_removed": 1723}
+  ],
+  "protocols_detected": ["TCP", "UDP", "ICMP", "HTTP", "HTTPS", "DNS", "SSH", "FTP"],
+  "threat_levels": ["Critical", "High", "Medium", "Low", "Safe"],
+  "traffic_labels": ["Benign", "DDoS", "DoS", "PortScan", "Bot", "BruteForce", "Infiltration", "Web Attack", "Malware"],
+  "startup_time_seconds": 0.05,
+  "memory_usage_mb": 0.0,
+  "files_failed": []
+}

@@ -168,12 +168,22 @@ async def compute_threat_intelligence_analytics(
                 continue
         filtered_history.append(p)
 
-    # ── 1. Attack Distribution & Most Common Attacks ───────────────────────
-    attack_counts: Dict[str, int] = {}
-    risk_scores_by_type: Dict[str, List[int]] = {}
-    all_risk_scores: List[int] = []
-    ip_activity: Dict[str, Dict[str, Any]] = {}
-    protocol_counts: Dict[str, int] = {"TCP": 0, "UDP": 0, "ICMP": 0, "HTTP": 0, "OTHER": 0}
+    # Fallback to historical report artifacts if no live alerts/history in DB
+    if not alerts_list and not filtered_history:
+        try:
+            from pathlib import Path
+            import json
+            reports_dir = Path(__file__).resolve().parent.parent.parent / "reports"
+            ta_path = reports_dir / "threat_analysis.json"
+            if ta_path.exists():
+                with open(ta_path, "r", encoding="utf-8") as f:
+                    ta_data = json.load(f)
+                    if "attack_distribution" in ta_data and isinstance(ta_data["attack_distribution"], dict):
+                        for atk, cnt in ta_data["attack_distribution"].items():
+                            if str(atk).lower() not in ("benign", "normal"):
+                                attack_counts[atk] = int(cnt)
+        except Exception as e:
+            logger.debug(f"Threat analysis report fallback note: {e}")
 
     # Process alerts from DB
     for a in alerts_list:

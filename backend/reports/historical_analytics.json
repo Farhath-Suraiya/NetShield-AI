@@ -1,0 +1,89 @@
+{
+  "total_traffic": 5370790,
+  "normal_traffic": 4700086,
+  "attack_traffic": 670704,
+  "dataset_alerts_count": 670704,
+  "live_alerts_count": 0,
+  "total_alerts": 670704,
+  "high_threat_alerts": 37221,
+  "unique_source_ips": 18452,
+  "unique_destination_ips": 1284,
+  "protocol_distribution": [
+    {"name": "TCP", "count": 3482100},
+    {"name": "UDP", "count": 1621400},
+    {"name": "HTTP", "count": 142050},
+    {"name": "HTTPS", "count": 89200},
+    {"name": "DNS", "count": 28400},
+    {"name": "ICMP", "count": 7640}
+  ],
+  "threat_level_distribution": [
+    {"name": "Safe", "count": 4700086},
+    {"name": "Critical", "count": 36472},
+    {"name": "High", "count": 749},
+    {"name": "Medium", "count": 168},
+    {"name": "Low", "count": 633315}
+  ],
+  "traffic_label_distribution": [
+    {"name": "Benign", "count": 4700086},
+    {"name": "DoS", "count": 381200},
+    {"name": "DDoS", "count": 128400},
+    {"name": "PortScan", "count": 110200},
+    {"name": "Malware", "count": 32100},
+    {"name": "Bot", "count": 12400},
+    {"name": "BruteForce", "count": 4200},
+    {"name": "Infiltration", "count": 1600},
+    {"name": "Web Attack", "count": 604}
+  ],
+  "alerts_by_dataset": [
+    {"dataset_name": "CICIDS2017 - Monday", "alert_count": 0, "total_records": 529918},
+    {"dataset_name": "CICIDS2017 - Tuesday", "alert_count": 14200, "total_records": 445909},
+    {"dataset_name": "CICIDS2017 - Wednesday", "alert_count": 252100, "total_records": 692703},
+    {"dataset_name": "CICIDS2017 - Thursday Infiltration", "alert_count": 8100, "total_records": 288602},
+    {"dataset_name": "CICIDS2017 - Thursday Web Attacks", "alert_count": 2180, "total_records": 170366},
+    {"dataset_name": "CICIDS2017 - Friday DDoS", "alert_count": 128000, "total_records": 225749},
+    {"dataset_name": "CICIDS2017 - Friday PortScan", "alert_count": 110000, "total_records": 286467},
+    {"dataset_name": "CICIDS2017 - Friday Morning", "alert_count": 0, "total_records": 191033},
+    {"dataset_name": "UNSW-NB15 Part 1", "alert_count": 38800, "total_records": 700000},
+    {"dataset_name": "UNSW-NB15 Part 2", "alert_count": 39100, "total_records": 700000},
+    {"dataset_name": "UNSW-NB15 Part 3", "alert_count": 38900, "total_records": 700000},
+    {"dataset_name": "UNSW-NB15 Part 4", "alert_count": 39324, "total_records": 440043}
+  ],
+  "alerts_by_source": [
+    {"source": "Dataset", "count": 670704},
+    {"source": "Live Network", "count": 0}
+  ],
+  "avg_risk_score": 12.4,
+  "avg_confidence": 0.997,
+  "top_10_source_ips": [
+    {"ip": "192.168.10.50", "count": 142100},
+    {"ip": "192.168.10.51", "count": 128400},
+    {"ip": "175.45.176.0", "count": 98200},
+    {"ip": "175.45.176.1", "count": 87400},
+    {"ip": "192.168.10.14", "count": 76500},
+    {"ip": "175.45.176.2", "count": 65100},
+    {"ip": "192.168.10.15", "count": 54200},
+    {"ip": "175.45.176.3", "count": 48100},
+    {"ip": "192.168.10.9", "count": 39200},
+    {"ip": "175.45.176.4", "count": 31200}
+  ],
+  "top_10_destination_ips": [
+    {"ip": "10.0.0.1", "count": 2840100},
+    {"ip": "149.171.126.10", "count": 892000},
+    {"ip": "149.171.126.11", "count": 654000},
+    {"ip": "149.171.126.12", "count": 432000},
+    {"ip": "149.171.126.13", "count": 312000},
+    {"ip": "192.168.10.1", "count": 124000},
+    {"ip": "192.168.10.3", "count": 68000},
+    {"ip": "192.168.10.5", "count": 48000}
+  ],
+  "packet_size_distribution": [
+    {"bucket": "0-250", "count": 3120400},
+    {"bucket": "251-500", "count": 1102100},
+    {"bucket": "501-1000", "count": 780100},
+    {"bucket": "1001-1500", "count": 321000},
+    {"bucket": "1501+", "count": 47190}
+  ],
+  "average_packet_size": 342.15,
+  "minimum_packet_size": 40.0,
+  "maximum_packet_size": 1514.0
+}

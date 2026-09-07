@@ -59,6 +59,9 @@ api.interceptors.response.use(
       sessionStorage.removeItem('access_token');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('jwt');
+      try {
+        delete api.defaults.headers.common.Authorization;
+      } catch (e) {}
       
       // Prevent infinite loops if we're already on login
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {

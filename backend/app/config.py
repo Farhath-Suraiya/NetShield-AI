@@ -1,6 +1,6 @@
 import os
 import json
-from typing import List, Union
+from typing import Any, List, Union
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import AnyHttpUrl, field_validator
 
@@ -13,9 +13,21 @@ class Settings(BaseSettings):
     # Live Capture Settings
     NETSHIELD_CAPTURE_INTERFACE: str = "4"
     NETSHIELD_TSHARK_PATH: str = r"E:\Wireshark\tshark.exe"
+    NETSHIELD_CAPTURE_MODE: str = "local"
+    NETSHIELD_REMOTE_API_URL: str = "https://netshield-ai-h038.onrender.com"
+    NETSHIELD_CAPTURE_API_KEY: str = "netshield_capture_agent_secret_key_2026"
 
     # Dataset Preload Settings (Set to False for production cloud deployment)
     LOAD_DATASETS: bool = False
+
+    @field_validator("LOAD_DATASETS", mode="before")
+    @classmethod
+    def parse_load_datasets(cls, v: Any) -> bool:
+        if os.getenv("RENDER") or os.getenv("RENDER_SERVICE_ID"):
+            return False
+        if isinstance(v, str):
+            return v.lower() in ("true", "1", "t", "yes")
+        return bool(v)
     
     # CORS Origins (JSON list or comma separated)
     BACKEND_CORS_ORIGINS: List[str] = [

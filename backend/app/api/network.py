@@ -179,6 +179,36 @@ async def get_prediction_history_route(
     }
 
 
+from fastapi import Header, Security
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from app.config import settings
+
+security_bearer = HTTPBearer(auto_error=False)
+
+
+async def verify_ingest_auth(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    credentials: HTTPAuthorizationCredentials | None = Depends(security_bearer)
+):
+    """Authenticate telemetry ingestion requests from the local Windows PyShark agent using API Key or JWT."""
+    if x_api_key and settings.NETSHIELD_CAPTURE_API_KEY:
+        if x_api_key == settings.NETSHIELD_CAPTURE_API_KEY:
+            return {"source": "api_key", "authenticated": True}
+
+    if credentials and credentials.credentials:
+        try:
+            user = await get_current_user(token=credentials.credentials)
+            if user:
+                return user
+        except Exception:
+            pass
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Unauthorized ingestion request. Provide a valid X-API-Key header or Bearer JWT token."
+    )
+
+
 @router.post("/predict")
 async def predict_traffic(
     packet_data: dict,
@@ -194,6 +224,21 @@ async def predict_traffic(
     return predict_network_traffic(packet_data)
 
 
+@router.post("/live-capture/ingest")
+@router.post("/live/ingest")
+async def ingest_live_packet(
+    packet_data: dict,
+    auth_context: dict = Depends(verify_ingest_auth)
+):
+    """
+    Secure ingestion API receiving extracted packet features from the local Windows PyShark agent.
+    Executes Milestone 2 ML model inference, risk scoring, threat analysis, MongoDB Atlas alert storage,
+    and WebSocket broadcasting.
+    """
+    from app.services.live_packet_capture import live_capture_service
+    return await live_capture_service.process_remote_packet(packet_data)
+
+
 @router.post("/live-capture/start")
 async def start_live_capture(
     request: Request,
@@ -204,17 +249,18 @@ async def start_live_capture(
     await log_audit_event(request, current_user, "Live Packet Capture Started", "Network")
     from app.services.live_packet_capture import live_capture_service
     
-    # Task 9 Logs
+    # Logging
     username = current_user.get("email") or current_user.get("full_name") or "Unknown"
     logger.info("[LiveCapture] Requested start")
     logger.info(f"[LiveCapture] Authenticated user: {username}")
     logger.info(f"[LiveCapture] TShark available: {live_capture_service.tshark_available}")
 
     if not live_capture_service.tshark_available:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="TShark/Wireshark is not installed or available on this system's PATH. Live packet capture is disabled."
-        )
+        return {
+            "message": "Render cloud backend operates in Remote Agent mode. Run 'python capture_agent.py' on your Windows laptop to capture and stream live network telemetry.",
+            "status": live_capture_service.get_status()
+        }
+
     interface = (payload or {}).get("interface")
     duration = int((payload or {}).get("duration", 60))
     return await live_capture_service.start_capture(interface=interface, duration=duration)

@@ -543,6 +543,15 @@ export default function NetworkMonitoring() {
               </div>
             </section>
 
+            {!liveStatus.tshark_available && !liveStatus.agent_active && (
+              <div className="rounded-xl border border-blue-500/30 bg-blue-950/40 p-3 text-xs text-blue-200 flex items-center justify-between gap-3">
+                <div>
+                  <span className="font-bold text-blue-400">💡 Remote PyShark Agent Mode:</span> To capture and stream live network packets from your Windows laptop to the Render cloud backend, run:
+                  <code className="ml-2 font-mono text-white bg-slate-950 px-2 py-0.5 rounded border border-slate-700">python capture_agent.py --mode remote</code>
+                </div>
+              </div>
+            )}
+
             {/* ── Live AI Predictions Stream ── */}
             <section className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-2xl backdrop-blur space-y-4">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-slate-800 pb-3">

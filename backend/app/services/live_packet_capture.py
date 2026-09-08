@@ -22,6 +22,7 @@ class LivePacketCaptureService:
         # Load interface directly from settings class
         self.active_interface: str = settings.NETSHIELD_CAPTURE_INTERFACE
         self.tshark_available: bool = False
+        self.last_agent_heartbeat: Optional[float] = None
         self._capture_task: Optional[asyncio.Task] = None
         self._recent_live_packets: List[Dict[str, Any]] = []
         self._recent_live_alerts: List[Dict[str, Any]] = []
@@ -79,18 +80,50 @@ class LivePacketCaptureService:
             return
 
         self.tshark_available = False
-        logger.warning("TShark could not be detected. Live packet capture is disabled.")
+        logger.warning("TShark could not be detected on this host. Live capture agent mode supported for remote packet ingestion.")
 
     def get_status(self) -> Dict[str, Any]:
         """Return current live packet capture service status."""
+        now = time.time()
+        agent_active = self.last_agent_heartbeat is not None and (now - self.last_agent_heartbeat) < 30.0
+        effective_is_capturing = self.is_capturing or agent_active
+
+        if self.is_capturing:
+            mode_str = "PyShark Local Background Capture"
+        elif agent_active:
+            mode_str = "Local Agent Stream -> Deployed Backend"
+        elif self.tshark_available:
+            mode_str = "Local PyShark Ready"
+        else:
+            mode_str = "Remote Agent Required (Render Cloud Mode)"
+
+        last_heartbeat_iso = None
+        if self.last_agent_heartbeat:
+            last_heartbeat_iso = datetime.datetime.fromtimestamp(
+                self.last_agent_heartbeat, datetime.timezone.utc
+            ).isoformat()
+
         return {
-            "is_capturing": self.is_capturing,
+            "is_capturing": effective_is_capturing,
             "packet_count": self.packet_count,
             "threats_detected": self.threats_detected,
             "live_alerts_count": len(self._recent_live_alerts),
             "active_interface": self.active_interface,
             "tshark_available": self.tshark_available,
-            "mode": "PyShark/TShark Live" if self.tshark_available else "Live Capture Simulation (Fallback)"
+            "agent_active": agent_active,
+            "last_agent_heartbeat": last_heartbeat_iso,
+            "capture_mode": getattr(settings, "NETSHIELD_CAPTURE_MODE", "local"),
+            "mode": mode_str,
+        }
+
+    async def process_remote_packet(self, packet_payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Process packet telemetry transmitted by the local PyShark capture agent."""
+        self.last_agent_heartbeat = time.time()
+        await self._process_packet(packet_payload)
+        return {
+            "status": "success",
+            "packet_count": self.packet_count,
+            "threats_detected": self.threats_detected,
         }
 
     async def start_capture(self, interface: Optional[str] = None, duration: int = 60) -> Dict[str, Any]:

@@ -29,7 +29,7 @@ def test_packet_feature_extractor():
     assert feat["Max Packet Length"] == 512
 
 
-@pytest.mark.asyncio
+@pytest.mark.anyio
 async def test_live_packet_capture_service_lifecycle():
     """Test starting and stopping live packet capture service."""
     status_before = live_capture_service.get_status()

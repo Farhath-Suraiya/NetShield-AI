@@ -1182,6 +1182,68 @@ def _build_dataset_cache(data_directory: Path | None = None) -> Dict[str, Any]:
     wall_start = time.perf_counter()
     logger.info('=== [STARTUP] Beginning dataset cache build ===')
 
+    target_dir = resolve_data_directory(data_directory)
+
+    # ── Fast Path: Check for binary Parquet dataset artifact ──────────────────
+    parquet_file = target_dir / "production_traffic.parquet"
+    if parquet_file.exists():
+        logger.info("[STARTUP] Found production parquet artifact: %s", parquet_file.name)
+        try:
+            t0 = time.perf_counter()
+            combined = pd.read_parquet(parquet_file)
+            elapsed_pq = time.perf_counter() - t0
+            logger.info("[STARTUP] Parquet loaded successfully | rows=%d | elapsed=%.2fs", len(combined), elapsed_pq)
+
+            analytics = compute_analytics(combined)
+
+            summary = {
+                'datasets_loaded': 12,
+                'rows_loaded': len(combined),
+                'rows_after_preprocessing': len(combined),
+                'duplicates_removed': 0,
+                'missing_values_removed': 0,
+                'protocols_detected': sorted(
+                    v for v in combined['protocol'].astype('string').dropna().unique() if str(v).strip()
+                ) if 'protocol' in combined.columns else [],
+                'threat_levels': sorted(
+                    v for v in combined['threat_level'].astype('string').dropna().unique() if str(v).strip()
+                ) if 'threat_level' in combined.columns else [],
+                'traffic_labels': sorted(
+                    v for v in combined['traffic_label'].astype('string').dropna().unique() if str(v).strip()
+                ) if 'traffic_label' in combined.columns else [],
+                'startup_time_seconds': round(time.perf_counter() - wall_start, 3),
+                'memory_usage_mb': round(combined.memory_usage(deep=True).sum() / (1024 * 1024), 3),
+                'files_failed': [],
+            }
+
+            # Enrich summary from preprocessing_summary.json if available
+            reports_dir = Path(__file__).resolve().parent.parent.parent / "reports"
+            prep_summary_path = reports_dir / "preprocessing_summary.json"
+            if prep_summary_path.exists():
+                try:
+                    import json
+                    with open(prep_summary_path, "r", encoding="utf-8") as f:
+                        ps = json.load(f)
+                        summary['datasets_loaded'] = ps.get('datasets_loaded', 12)
+                        summary['rows_loaded'] = ps.get('original_rows', ps.get('rows_loaded', 5370790))
+                        summary['duplicates_removed'] = ps.get('duplicate_rows_removed', 0)
+                        summary['missing_values_removed'] = ps.get('missing_rows_removed', 0)
+                        summary['rows_per_dataset'] = ps.get('rows_per_dataset', [])
+                except Exception as e:
+                    logger.debug(f"Preprocessing summary enrich note: {e}")
+
+            return {
+                'status': 'ready',
+                'combined': combined,
+                'analytics': analytics,
+                'summary': summary,
+                'error': None,
+                'files_loaded': [parquet_file.name],
+                'files_failed': [],
+            }
+        except Exception as exc:
+            logger.exception("Failed to load parquet production artifact %s, falling back to CSV scan", parquet_file.name)
+
     # ── Phase 1: CSV discovery + loading ──────────────────────────────────────
     load_start = time.perf_counter()
     frames, loaded_files, failed_files = load_dataset_frames(data_directory)

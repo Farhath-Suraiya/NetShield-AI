@@ -218,7 +218,9 @@ __marimo__/
 .streamlit/secrets.toml
 
 # NetShield AI large datasets
-backend/app/data/
+backend/app/data/*.csv
+backend/app/data/*.xlsx
+!backend/app/data/production_traffic.parquet
 backend/ml/*.csv
 backend/models/*.csv
 backend/reports/*.csv

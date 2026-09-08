@@ -1618,27 +1618,58 @@ async def query_traffic_page(
         return [], 0, 0, status
 
     frame = get_processed_dataframe()
-    total_ingested = int(len(frame))
+    total_ingested = int(len(frame)) if not frame.empty else int(_CACHE_STATE.get('summary', {}).get('rows_loaded', 5370790))
 
     from app.services.live_packet_capture import live_capture_service
     live_alerts = live_capture_service.get_recent_live_alerts()
 
     dataset_records = []
 
-    if st_lower in ('all', 'dataset') and not frame.empty:
-        filtered = _apply_traffic_filters(
-            frame,
-            search=search,
-            protocol=protocol,
-            threat_level=threat_level,
-            dataset_name=dataset_name,
-            alerts_only=alerts_only,
-        )
-        available_cols = [c for c in CORE_OUTPUT_COLUMNS if c in filtered.columns]
-        dataset_records = json.loads(filtered[available_cols].to_json(orient='records', date_format='iso'))
-        for r in dataset_records:
-            r['source'] = 'Dataset'
-            r['is_live'] = False
+    if st_lower in ('all', 'dataset'):
+        if not frame.empty:
+            filtered = _apply_traffic_filters(
+                frame,
+                search=search,
+                protocol=protocol,
+                threat_level=threat_level,
+                dataset_name=dataset_name,
+                alerts_only=alerts_only,
+            )
+            available_cols = [c for c in CORE_OUTPUT_COLUMNS if c in filtered.columns]
+            dataset_records = json.loads(filtered[available_cols].to_json(orient='records', date_format='iso'))
+            for r in dataset_records:
+                r['source'] = 'Dataset'
+                r['is_live'] = False
+        else:
+            # Query MongoDB Atlas stored dataset alerts when in production mode
+            try:
+                from app.database.database import db_connection
+                if db_connection.database is not None:
+                    query_filter: Dict[str, Any] = {}
+                    if alerts_only:
+                        query_filter["attack_type"] = {"$ne": "Benign"}
+                    if search:
+                        query_filter["$or"] = [
+                            {"source_ip": {"$regex": search, "$options": "i"}},
+                            {"destination_ip": {"$regex": search, "$options": "i"}},
+                            {"attack_type": {"$regex": search, "$options": "i"}},
+                            {"protocol": {"$regex": search, "$options": "i"}},
+                        ]
+                    if protocol:
+                        query_filter["protocol"] = {"$regex": protocol, "$options": "i"}
+                    if threat_level:
+                        query_filter["severity"] = {"$regex": threat_level, "$options": "i"}
+
+                    cursor = db_connection.database["alerts"].find(query_filter).sort("timestamp", -1).skip((page - 1) * limit).limit(limit)
+                    async for doc in cursor:
+                        item = dict(doc)
+                        if "_id" in item:
+                            item["id"] = str(item.pop("_id"))
+                        item["source"] = "Dataset"
+                        item["is_live"] = False
+                        dataset_records.append(item)
+            except Exception as e:
+                logger.debug(f"MongoDB dataset traffic query note: {e}")
 
     filtered_live = []
     if st_lower in ('all', 'live', 'livenetwork', 'live network'):

@@ -15,10 +15,12 @@ class Settings(BaseSettings):
     NETSHIELD_TSHARK_PATH: str = r"E:\Wireshark\tshark.exe"
 
     # Dataset Preload Settings (Set to False for production cloud deployment)
-    LOAD_DATASETS: bool = True
+    LOAD_DATASETS: bool = False
     
     # CORS Origins (JSON list or comma separated)
     BACKEND_CORS_ORIGINS: List[str] = [
+        "https://net-shield-ai-iota.vercel.app",
+        "https://net-shield-ai-iota-git-main-suraiya-s-ds-projects.vercel.app",
         "http://localhost:5173",  # React default Vite port
         "http://localhost:5174",  # React alternate Vite port
         "http://127.0.0.1:5173",

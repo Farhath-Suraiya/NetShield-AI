@@ -169,12 +169,21 @@ app.mount(f"{settings.API_V1_STR}/reports", StaticFiles(directory=reports_dir), 
 
 @app.get("/", tags=["system"])
 async def root():
-    """Root route returning service meta-information."""
+    """Lightweight root endpoint returning service meta-information immediately."""
     return {
-        "app": settings.PROJECT_NAME,
-        "api_docs": f"{settings.API_V1_STR}/docs" if app.openapi_url else None,
-        "status": "active"
+        "status": "ok",
+        "service": settings.PROJECT_NAME,
+        "api_docs": f"{settings.API_V1_STR}/docs" if app.openapi_url else None
+    }
+
+@app.get("/health", tags=["system"])
+async def health():
+    """Lightweight health check endpoint for Render health monitoring."""
+    return {
+        "status": "healthy",
+        "service": settings.PROJECT_NAME
     }
 
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=settings.PORT, reload=True)
+

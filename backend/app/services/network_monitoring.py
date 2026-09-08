@@ -1187,14 +1187,28 @@ def _build_dataset_cache(data_directory: Path | None = None) -> Dict[str, Any]:
     # ── Fast Path: Check for binary Parquet dataset artifact ──────────────────
     parquet_file = target_dir / "production_traffic.parquet"
     if parquet_file.exists():
+        logger.info("[STARTUP] Dataset preload started")
         logger.info("[STARTUP] Found production parquet artifact: %s", parquet_file.name)
         try:
+            logger.info("[STARTUP] Parquet loading started...")
             t0 = time.perf_counter()
             combined = pd.read_parquet(parquet_file)
+            
+            # Memory-safe processing steps: convert string columns to category & downcast numerics
+            # Reduces RAM footprint from 1.7GB to ~250MB to prevent Render OOM process kills
+            for col in combined.select_dtypes(include=['object', 'string']).columns:
+                combined[col] = combined[col].astype('category')
+            for col in combined.select_dtypes(include=['int64']).columns:
+                combined[col] = pd.to_numeric(combined[col], downcast='integer')
+            for col in combined.select_dtypes(include=['float64']).columns:
+                combined[col] = pd.to_numeric(combined[col], downcast='float')
+
             elapsed_pq = time.perf_counter() - t0
-            logger.info("[STARTUP] Parquet loaded successfully | rows=%d | elapsed=%.2fs", len(combined), elapsed_pq)
+            memory_mb = round(combined.memory_usage(deep=True).sum() / (1024 * 1024), 3)
+            logger.info("[STARTUP] Parquet loading completed | rows=%d | memory=%.2fMB | elapsed=%.2fs", len(combined), memory_mb, elapsed_pq)
 
             analytics = compute_analytics(combined)
+            logger.info("[STARTUP] Dataset cache ready")
 
             summary = {
                 'datasets_loaded': 12,
@@ -1203,16 +1217,16 @@ def _build_dataset_cache(data_directory: Path | None = None) -> Dict[str, Any]:
                 'duplicates_removed': 0,
                 'missing_values_removed': 0,
                 'protocols_detected': sorted(
-                    v for v in combined['protocol'].astype('string').dropna().unique() if str(v).strip()
+                    str(v) for v in combined['protocol'].dropna().unique() if str(v).strip()
                 ) if 'protocol' in combined.columns else [],
                 'threat_levels': sorted(
-                    v for v in combined['threat_level'].astype('string').dropna().unique() if str(v).strip()
+                    str(v) for v in combined['threat_level'].dropna().unique() if str(v).strip()
                 ) if 'threat_level' in combined.columns else [],
                 'traffic_labels': sorted(
-                    v for v in combined['traffic_label'].astype('string').dropna().unique() if str(v).strip()
+                    str(v) for v in combined['traffic_label'].dropna().unique() if str(v).strip()
                 ) if 'traffic_label' in combined.columns else [],
                 'startup_time_seconds': round(time.perf_counter() - wall_start, 3),
-                'memory_usage_mb': round(combined.memory_usage(deep=True).sum() / (1024 * 1024), 3),
+                'memory_usage_mb': memory_mb,
                 'files_failed': [],
             }
 
